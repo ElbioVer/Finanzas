@@ -38,11 +38,19 @@ const toTx = (r: Record<string, unknown>): Transaction => ({
 export function createSupabaseStore(sb: SupabaseClient): Store {
   let seeded: Promise<void> | null = null;
 
-  /** La primera vez que entrás, carga los tópicos y medios de pago iniciales. */
+  /**
+   * La primera vez que entrás, carga los tópicos y medios de pago iniciales.
+   * Lo hace la función seed_defaults de la base, que usa un bloqueo para que
+   * abrir la app en dos lugares a la vez no los cargue dos veces.
+   */
   function ensureSeed() {
     seeded ??= (async () => {
-      const { count, error } = await sb.from('categories').select('id', { count: 'exact', head: true });
-      if (error) throw new Error(error.message);
+      const { error } = await sb.rpc('seed_defaults', { cats: defaultCategories(), pms: defaultPaymentMethods() });
+      if (!error) return;
+      // Base sin el script 0002: carga directa (puede duplicar si se abre en dos lugares a la vez)
+      if (error.code !== 'PGRST202') throw new Error(error.message);
+      const { count, error: countError } = await sb.from('categories').select('id', { count: 'exact', head: true });
+      if (countError) throw new Error(countError.message);
       if (count === 0) {
         check(await sb.from('categories').insert(defaultCategories()));
         check(await sb.from('payment_methods').insert(defaultPaymentMethods()));
