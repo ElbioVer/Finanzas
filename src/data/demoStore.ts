@@ -1,12 +1,15 @@
 import { buildInstallments } from '../lib/calc';
 import { addMonthsIso, today, ymOf } from '../lib/dates';
-import type { Category, PaymentMethod, Settings, Transaction } from '../lib/types';
+import type { CardStatement, Category, PaymentMethod, Recurring, RecurringInstance, Settings, Transaction } from '../lib/types';
 import { defaultCategories, defaultPaymentMethods } from './defaults';
 import { newId, type Store } from './store';
 
-const KEY = 'finanzas.demo.v1';
+const KEY = 'finanzas.demo.v2';
 
-interface DemoData { cats: Category[]; pms: PaymentMethod[]; txs: Transaction[]; settings: Settings }
+interface DemoData {
+  cats: Category[]; pms: PaymentMethod[]; txs: Transaction[]; settings: Settings;
+  statements: CardStatement[]; recurring: Recurring[]; instances: RecurringInstance[];
+}
 
 function sample(): DemoData {
   const cats = defaultCategories();
@@ -26,7 +29,6 @@ function sample(): DemoData {
   const one = (b: ReturnType<typeof tx>) => buildInstallments(b, 1, newId);
   const txs: Transaction[] = [
     ...one(tx(d(1), 'Sueldo', 1850000, 'ingreso', 'Sueldo', 'Galicia')),
-    ...one(tx(d(1), 'Alquiler', 420000, 'egreso', 'Alquiler', 'Galicia')),
     ...one(tx(d(2), 'Carrefour Market', 48730, 'egreso', 'Supermercado', 'TC Carrefour')),
     ...one(tx(d(2), 'YPF', 35000, 'egreso', 'Nafta', 'Galicia')),
     ...one(tx(d(3), 'Farmacity', 12480, 'egreso', 'Salud', 'Efectivo')),
@@ -36,7 +38,14 @@ function sample(): DemoData {
     ...buildInstallments(tx(d(4), 'Frávega · Smart TV', 537000, 'egreso', 'Hogar', 'TC Cencosud'), 6, newId),
     ...buildInstallments(tx(addMonthsIso(d(10), -4), 'Celular', 734400, 'egreso', 'Hogar', 'TC Naranja'), 12, newId),
   ];
-  return { cats, pms, txs, settings: { fx_source: 'oficial', fx_manual: 1450 } };
+  const recurring: Recurring[] = [
+    { id: newId(), name: 'Alquiler', category_id: c('Alquiler'), payment_method_id: p('Galicia'), default_amount: 420000, currency: 'ARS', due_day: 10, active: true, sort: 1 },
+    { id: newId(), name: 'Cuota Auto', category_id: c('Cuota Auto'), payment_method_id: p('Galicia'), default_amount: 285000, currency: 'ARS', due_day: 15, active: true, sort: 2 },
+  ];
+  const statements: CardStatement[] = [
+    { id: newId(), payment_method_id: p('TC Naranja'), period: ym, closing_date: addMonthsIso(d(26), -1), due_date: d(7), total_ars: 264900, total_usd: 42.5, minimum_payment: 39700, planned_kind: 'total', planned_amount: null, paid_amount: null, paid_at: null },
+  ];
+  return { cats, pms, txs, settings: { fx_source: 'oficial', fx_manual: 1450 }, statements, recurring, instances: [] };
 }
 
 export function createDemoStore(): Store {
@@ -70,6 +79,18 @@ export function createDemoStore(): Store {
     async deletePlan(planId) { data.txs = data.txs.filter(t => t.plan_id !== planId); persist(); },
     async getSettings() { return data.settings; },
     async saveSettings(s) { data.settings = s; persist(); },
+    async listStatements(from, to) { return data.statements.filter(x => x.period >= from && x.period <= to); },
+    async saveStatement(st) { upsert(data.statements, st); persist(); },
+    async listRecurring() { return [...data.recurring].sort(bySort); },
+    async saveRecurring(r) { upsert(data.recurring, r); persist(); },
+    async listInstances(from, to) { return data.instances.filter(x => x.period >= from && x.period <= to); },
+    async ensureInstances(list) {
+      for (const i of list) {
+        if (!data.instances.some(x => x.recurring_id === i.recurring_id && x.period === i.period)) data.instances.push(i);
+      }
+      persist();
+    },
+    async saveInstance(i) { upsert(data.instances, i); persist(); },
   };
 }
 

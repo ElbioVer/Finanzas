@@ -1,8 +1,8 @@
 import { describe, expect, it } from 'vitest';
-import { buildAlerts, buildInstallments, installmentProjection, monthSummary, spendingByCategory, upcomingDues } from './calc';
+import { buildAlerts, buildInstallments, closingTargetPeriod, consumptionBetween, dateInMonth, installmentProjection, missingInstances, monthSummary, plannedPayment, spendingByCategory, upcomingDues } from './calc';
 import { addMonthsIso, nextOccurrence } from './dates';
 import { ars, parseAmount, splitInstallments, usd } from './money';
-import type { Category, PaymentMethod, Transaction } from './types';
+import type { CardStatement, Category, PaymentMethod, Recurring, RecurringInstance, Transaction } from './types';
 
 let seq = 0;
 const id = () => `id${++seq}`;
@@ -105,7 +105,7 @@ describe('alertas', () => {
     const txs = [tx({ amount: 85000, category_id: sup.id }), tx({ amount: 20000, category_id: nafta.id })];
     const alerts = buildAlerts({ txs, ym: '2026-10', cats: [sup, nafta], pms: [naranja, cencosud], rate: 1, todayIso: '2026-10-04' });
     expect(alerts.map(a => a.title)).toEqual([
-      'Vence TC Naranja en 3 días',
+      'TC Naranja: vence en 3 días',
       'Supermercado: 85% del tope',
       'Definí cierre y vencimiento de TC Cencosud',
     ]);
@@ -122,6 +122,133 @@ describe('alertas', () => {
   it('ordena los vencimientos por cercanía', () => {
     const x = pm({ kind: 'credito', name: 'X', due_day: 20 });
     const y = pm({ kind: 'credito', name: 'Y', due_day: 7 });
-    expect(upcomingDues([x, y], '2026-10-04').map(d => d.pm.name)).toEqual(['Y', 'X']);
+    expect(upcomingDues({ pms: [x, y], todayIso: '2026-10-04', rate: 1 }).map(d => d.name)).toEqual(['Y', 'X']);
+  });
+});
+
+const st = (p: Partial<CardStatement>): CardStatement => ({ id: id(), payment_method_id: 'tc', period: '2026-10', closing_date: '2026-09-26', due_date: '2026-10-07', total_ars: 0, total_usd: 0, minimum_payment: 0, planned_kind: 'total', planned_amount: null, paid_amount: null, paid_at: null, ...p });
+const rec = (r: Partial<Recurring>): Recurring => ({ id: id(), name: 'Alquiler', category_id: null, payment_method_id: null, default_amount: null, currency: 'ARS', due_day: 10, active: true, sort: 0, ...r });
+const inst = (i: Partial<RecurringInstance>): RecurringInstance => ({ id: id(), recurring_id: 'r', period: '2026-10', due_date: '2026-10-10', amount: 0, currency: 'ARS', paid_at: null, transaction_id: null, ...i });
+
+describe('resúmenes de tarjeta', () => {
+  it('calcula lo que se va a pagar según la opción elegida', () => {
+    const base = { total_ars: 100000, total_usd: 10, minimum_payment: 20000, planned_amount: 50000 };
+    expect(plannedPayment(st({ ...base, planned_kind: 'total' }), 1500)).toBe(115000);
+    expect(plannedPayment(st({ ...base, planned_kind: 'minimo' }), 1500)).toBe(20000);
+    expect(plannedPayment(st({ ...base, planned_kind: 'otro' }), 1500)).toBe(50000);
+  });
+
+  it('no cuenta dos veces los consumos de una tarjeta con resumen', () => {
+    const tc = pm({ id: 'tc', kind: 'credito' });
+    const tc2 = pm({ id: 'tc2', kind: 'credito' });
+    const deb = pm({ kind: 'debito' });
+    const txs = [
+      tx({ type: 'ingreso', amount: 1000000 }),
+      tx({ amount: 80000, payment_method_id: tc.id }),   // consumo: va al resumen de noviembre
+      tx({ amount: 30000, payment_method_id: tc2.id }),  // tarjeta sin resumen: se estima
+      tx({ amount: 50000, payment_method_id: deb.id }),
+      tx({ amount: 420000, payment_method_id: deb.id }), // alquiler ya pagado
+    ];
+    const statements = [st({ payment_method_id: 'tc', total_ars: 200000, minimum_payment: 30000, planned_kind: 'minimo' })];
+    const instances = [inst({ amount: 285000 }), inst({ amount: 420000, paid_at: '2026-10-01' })];
+    const s = monthSummary(txs, '2026-10', [tc, tc2, deb], 1, statements, instances);
+    expect(s.egresosTarjeta).toBe(30000 + 30000);
+    expect(s.tarjetasEstimadas).toBe(1);
+    expect(s.egresosDirectos).toBe(470000);
+    expect(s.fijosPendientes).toBe(285000);
+    expect(s.libre).toBe(1000000 - 470000 - 60000 - 285000);
+  });
+
+  it('usa lo pagado cuando el resumen ya se pagó', () => {
+    const tc = pm({ id: 'tc', kind: 'credito' });
+    const s = monthSummary([], '2026-10', [tc], 1, [st({ total_ars: 100000, paid_amount: 90000, paid_at: '2026-10-05' })]);
+    expect(s.egresosTarjeta).toBe(90000);
+  });
+
+  it('suma los consumos entre el cierre anterior y este cierre', () => {
+    const txs = [
+      tx({ date: '2026-08-26', amount: 1, payment_method_id: 'tc' }),
+      tx({ date: '2026-08-27', amount: 10, payment_method_id: 'tc' }),
+      tx({ date: '2026-09-26', amount: 100, payment_method_id: 'tc' }),
+      tx({ date: '2026-09-27', amount: 1000, payment_method_id: 'tc' }),
+      tx({ date: '2026-09-01', amount: 5, currency: 'USD', payment_method_id: 'tc' }),
+      tx({ date: '2026-09-01', amount: 7, payment_method_id: 'otra' }),
+    ];
+    expect(consumptionBetween(txs, 'tc', '2026-09-26')).toEqual({ ars: 110, usd: 5 });
+  });
+});
+
+describe('vencimientos y cierre de mes', () => {
+  it('desde el día 15 propone cerrar el mes siguiente', () => {
+    expect(closingTargetPeriod('2026-10-04')).toBe('2026-10');
+    expect(closingTargetPeriod('2026-10-28')).toBe('2026-11');
+    expect(closingTargetPeriod('2026-12-20')).toBe('2027-01');
+  });
+
+  it('ajusta el día a meses cortos', () => {
+    expect(dateInMonth('2027-02', 31)).toBe('2027-02-28');
+  });
+
+  it('combina resúmenes, gastos fijos y tarjetas sin resumen', () => {
+    const naranja = pm({ id: 'tc', kind: 'credito', name: 'TC Naranja', due_day: 7 });
+    const cencosud = pm({ kind: 'credito', name: 'TC Cencosud', due_day: 20 });
+    const alquiler = rec({ id: 'r', name: 'Alquiler' });
+    const dues = upcomingDues({
+      pms: [naranja, cencosud], todayIso: '2026-10-04', rate: 1,
+      statements: [st({ total_ars: 264900 })],
+      recurring: [alquiler],
+      instances: [inst({ amount: 420000 }), inst({ amount: 1, period: '2026-09', due_date: '2026-09-10', paid_at: null })],
+    });
+    expect(dues.map(d => [d.name, d.inDays, d.amount, d.status])).toEqual([
+      ['TC Naranja', 3, 264900, 'pendiente'],
+      ['Alquiler', 6, 420000, 'pendiente'],
+      ['TC Cencosud', 16, null, 'sin-resumen'],
+    ]);
+  });
+
+  it('avisa lo vencido sin pagar y el cierre pendiente', () => {
+    const tc = pm({ id: 'tc', kind: 'credito', name: 'TC Naranja', closing_day: 26, due_day: 7 });
+    const alerts = buildAlerts({
+      txs: [], ym: '2026-10', cats: [], pms: [tc], rate: 1, todayIso: '2026-10-28',
+      statements: [st({ period: '2026-10', due_date: '2026-10-07', planned_kind: 'minimo', total_ars: 100000, minimum_payment: 15000 })],
+      recurring: [rec({ id: 'r', name: 'Alquiler' })],
+      instances: [inst({ amount: 420000 })],
+    });
+    expect(alerts.map(a => a.title)).toEqual([
+      'TC Naranja: venció hace 21 días',
+      'Alquiler: venció hace 18 días',
+      'Cierre de mes: cargá los resúmenes',
+    ]);
+  });
+
+  it('avisa cuando se va a pagar el mínimo', () => {
+    const tc = pm({ id: 'tc', kind: 'credito', name: 'TC Cencosud', closing_day: 9, due_day: 20 });
+    const alerts = buildAlerts({
+      txs: [], ym: '2026-10', cats: [], pms: [tc], rate: 1, todayIso: '2026-10-04',
+      statements: [st({ due_date: '2026-10-20', planned_kind: 'minimo', total_ars: 198300, minimum_payment: 31000 })],
+    });
+    expect(alerts.map(a => [a.title, a.detail])).toEqual([
+      ['TC Cencosud: vas a pagar el mínimo', 'Quedan $ 167.300,00 financiados con interés'],
+    ]);
+  });
+});
+
+describe('gastos fijos', () => {
+  it('crea el mes que falta con el monto del último mes o el habitual', () => {
+    const alquiler = rec({ id: 'a', due_day: 31, default_amount: 420000 });
+    const auto = rec({ id: 'b', due_day: 15, default_amount: null });
+    const baja = rec({ id: 'c', active: false });
+    const existing = [inst({ recurring_id: 'b', period: '2026-10', amount: 285000 }), inst({ recurring_id: 'a', period: '2026-11' })];
+    const out = missingInstances([alquiler, auto, baja], existing, ['2026-10', '2026-11'], id);
+    expect(out.map(i => [i.recurring_id, i.period, i.due_date, i.amount])).toEqual([
+      ['a', '2026-10', '2026-10-31', 420000],
+      ['b', '2026-11', '2026-11-15', 285000],
+    ]);
+  });
+
+  it('un aumento sigue en los meses siguientes', () => {
+    const alquiler = rec({ id: 'a', default_amount: 420000 });
+    const out = missingInstances([alquiler], [inst({ recurring_id: 'a', period: '2026-10', amount: 450000 })], ['2026-11'], id);
+    expect(out[0].amount).toBe(450000);
   });
 });

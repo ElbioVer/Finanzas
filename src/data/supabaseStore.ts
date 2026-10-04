@@ -1,5 +1,5 @@
 import { createClient, type SupabaseClient } from '@supabase/supabase-js';
-import type { Category, PaymentMethod, Settings, Transaction } from '../lib/types';
+import type { CardStatement, Category, PaymentMethod, Recurring, RecurringInstance, Settings, Transaction } from '../lib/types';
 import { defaultCategories, defaultPaymentMethods } from './defaults';
 import type { Store } from './store';
 
@@ -33,6 +33,24 @@ const toTx = (r: Record<string, unknown>): Transaction => ({
   currency: r.currency as Transaction['currency'], type: r.type as Transaction['type'],
   category_id: (r.category_id as string) ?? null, payment_method_id: (r.payment_method_id as string) ?? null,
   plan_id: (r.plan_id as string) ?? null, installment_number: num(r.installment_number), installments_total: num(r.installments_total),
+});
+
+const toStatement = (r: Record<string, unknown>): CardStatement => ({
+  id: r.id as string, payment_method_id: r.payment_method_id as string, period: r.period as string,
+  closing_date: (r.closing_date as string) ?? null, due_date: r.due_date as string,
+  total_ars: Number(r.total_ars), total_usd: Number(r.total_usd), minimum_payment: Number(r.minimum_payment),
+  planned_kind: r.planned_kind as CardStatement['planned_kind'], planned_amount: num(r.planned_amount),
+  paid_amount: num(r.paid_amount), paid_at: (r.paid_at as string) ?? null,
+});
+const toRecurring = (r: Record<string, unknown>): Recurring => ({
+  id: r.id as string, name: r.name as string, category_id: (r.category_id as string) ?? null,
+  payment_method_id: (r.payment_method_id as string) ?? null, default_amount: num(r.default_amount),
+  currency: r.currency as Recurring['currency'], due_day: Number(r.due_day), active: !!r.active, sort: Number(r.sort ?? 0),
+});
+const toInstance = (r: Record<string, unknown>): RecurringInstance => ({
+  id: r.id as string, recurring_id: r.recurring_id as string, period: r.period as string, due_date: r.due_date as string,
+  amount: Number(r.amount), currency: r.currency as RecurringInstance['currency'],
+  paid_at: (r.paid_at as string) ?? null, transaction_id: (r.transaction_id as string) ?? null,
 });
 
 export function createSupabaseStore(sb: SupabaseClient): Store {
@@ -91,5 +109,22 @@ export function createSupabaseStore(sb: SupabaseClient): Store {
       return r ? { fx_source: r.fx_source as Settings['fx_source'], fx_manual: num(r.fx_manual) } : { fx_source: 'oficial', fx_manual: null };
     },
     async saveSettings(s) { check(await sb.from('settings').upsert({ ...s, updated_at: new Date().toISOString() })); },
+    async listStatements(from, to) {
+      return rows(await sb.from('card_statements').select('*').gte('period', from).lte('period', to).order('due_date')).map(toStatement);
+    },
+    async saveStatement(st) { check(await sb.from('card_statements').upsert(st)); },
+    async listRecurring() {
+      return rows(await sb.from('recurring_expenses').select('*').order('sort').order('name')).map(toRecurring);
+    },
+    async saveRecurring(r) { check(await sb.from('recurring_expenses').upsert(r)); },
+    async listInstances(from, to) {
+      return rows(await sb.from('recurring_instances').select('*').gte('period', from).lte('period', to).order('due_date')).map(toInstance);
+    },
+    async ensureInstances(list) {
+      if (!list.length) return;
+      // La restricción única (usuario, gasto, mes) evita duplicados aunque se abra en dos lugares a la vez
+      check(await sb.from('recurring_instances').upsert(list, { onConflict: 'user_id,recurring_id,period', ignoreDuplicates: true }));
+    },
+    async saveInstance(i) { check(await sb.from('recurring_instances').upsert(i)); },
   };
 }

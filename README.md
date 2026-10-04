@@ -11,7 +11,7 @@ App personal para controlar sueldo, ingresos, gastos fijos, tarjetas de crédito
 | Etapa | Contenido | Estado |
 |---|---|---|
 | 1 | Login, tópicos, medios de pago, movimientos, cuotas, Inicio, instalable | Hecha |
-| 2 | Resúmenes de tarjeta, cierre de mes, gastos fijos | Pendiente |
+| 2 | Resúmenes de tarjeta, cierre de mes, gastos fijos | Hecha |
 | 3 | Notificaciones push y Google Calendar | Pendiente |
 | 4 | Escaneo de tickets (OCR + IA) | Pendiente |
 | 5 | Gráficos históricos, exportar a Excel, aguinaldo | Pendiente |

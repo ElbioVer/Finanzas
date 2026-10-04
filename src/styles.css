@@ -151,7 +151,7 @@ main { min-width: 0; padding-block: 26px 120px; padding-inline: 32px; max-width:
 .row3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 14px; }
 .choice { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
 .choice label { border: 1px solid var(--line); border-radius: 11px; padding: 10px; display: flex; flex-direction: column; gap: 2px; cursor: pointer; background: var(--bg); }
-.choice input { position: absolute; opacity: 0; pointer-events: none; }
+.choice input[type="radio"] { position: absolute; opacity: 0; pointer-events: none; }
 .choice label:has(input:checked) { border-color: var(--accent); background: color-mix(in srgb, var(--accent) 10%, var(--bg)); }
 .choice b { font-size: 0.88rem; } .choice small { color: var(--muted); font-family: var(--f-num); }
 .wiz-foot { display: flex; justify-content: space-between; gap: 10px; margin-top: 20px; }
@@ -264,3 +264,13 @@ main { min-width: 0; padding-block: 26px 120px; padding-inline: 32px; max-width:
   .inline-cap { width: 104px; }
 }
 .btn { white-space: nowrap; }
+
+/* ---- etapa 2 ---- */
+.steps button { flex: 1; height: 6px; border-radius: 99px; background: var(--surface-2); border: 0; padding: 0; cursor: pointer; }
+.steps button.done { background: var(--accent); }
+.steps button.cur { background: color-mix(in srgb, var(--accent) 50%, var(--surface-2)); outline: 1px solid var(--accent); }
+.stmt { border-top: 1px solid var(--line); padding-top: 12px; display: flex; flex-direction: column; gap: 10px; }
+.btn-row { display: flex; flex-wrap: wrap; gap: 8px; }
+.wiz-foot { flex-wrap: wrap; }
+.wiz-foot > div { flex-wrap: wrap; }
+.choice label { min-width: 0; }

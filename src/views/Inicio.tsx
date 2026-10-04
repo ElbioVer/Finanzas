@@ -6,11 +6,11 @@ import { DIAS, MESES, parseIso, shortMonth } from '../lib/dates';
 import { ars } from '../lib/money';
 
 export function Inicio() {
-  const { txs, cats, pms, rate, ym, todayIso, go, openTx } = useApp();
-  const s = monthSummary(txs, ym, pms, rate);
+  const { txs, cats, pms, rate, ym, todayIso, go, openTx, statements, recurring, instances } = useApp();
+  const s = monthSummary(txs, ym, pms, rate, statements, instances);
   const rows = spendingByCategory(txs, ym, cats, rate);
-  const alerts = buildAlerts({ txs, ym, cats, pms, rate, todayIso });
-  const dues = upcomingDues(pms, todayIso);
+  const alerts = buildAlerts({ txs, ym, cats, pms, rate, todayIso, statements, recurring, instances });
+  const dues = upcomingDues({ pms, todayIso, rate, statements, recurring, instances }).slice(0, 7);
   const proj = installmentProjection(txs, ym, 6, rate);
   const projMax = Math.max(1, ...proj.map(p => p.total));
   const t = parseIso(todayIso);
@@ -39,7 +39,11 @@ export function Inicio() {
           <div>
             <span className="eyebrow">Egresos</span>
             <span className="big num">{ars(s.egresos)}</span>
-            <span className="sub">Débito y efectivo {ars(s.egresosDirectos)} · Tarjetas {ars(s.egresosTarjeta)}</span>
+            <span className="sub">
+              Débito y efectivo {ars(s.egresosDirectos)} · Tarjetas {ars(s.egresosTarjeta)}
+              {s.fijosPendientes > 0 && <> · Fijos por pagar {ars(s.fijosPendientes)}</>}
+              {s.tarjetasEstimadas > 0 && <><br />{s.tarjetasEstimadas === 1 ? '1 tarjeta sin resumen: se usan sus consumos' : `${s.tarjetasEstimadas} tarjetas sin resumen: se usan sus consumos`}</>}
+            </span>
           </div>
         </div>
 
@@ -71,13 +75,17 @@ export function Inicio() {
           <div className="grid">
             <div className="panel">
               <div className="panel-head"><h2>Próximos vencimientos</h2><button className="btn sm" onClick={() => go('tarjetas')}>Ver todo</button></div>
-              {dues.length === 0 ? <p className="empty">Cargá el día de vencimiento de tus tarjetas para verlos acá.</p> : dues.map(d => {
+              {dues.length === 0 ? <p className="empty">Cargá tus tarjetas y gastos fijos para ver sus vencimientos acá.</p> : dues.map(d => {
                 const date = parseIso(d.date);
                 return (
-                  <div key={d.pm.id} className="due">
+                  <div key={d.key} className="due">
                     <div className={`date-chip ${d.inDays <= 3 ? 'soon' : ''}`}><b>{String(date.getDate()).padStart(2, '0')}</b><span>{MESES[date.getMonth()].slice(0, 3)}</span></div>
-                    <div><div style={{ fontWeight: 600 }}>{d.pm.name}</div><span className="muted" style={{ fontSize: '.78rem' }}>{d.inDays === 0 ? 'vence hoy' : d.inDays === 1 ? 'vence mañana' : `en ${d.inDays} días`}</span></div>
-                    <span className="pill">Resumen</span>
+                    <div style={{ minWidth: 0 }}>
+                      <div style={{ fontWeight: 600 }}>{d.name}</div>
+                      <span className={`pill ${d.status === 'sin-resumen' ? 'warn' : d.planKind === 'minimo' ? 'warn' : ''}`}>{d.status === 'sin-resumen' ? 'Falta el resumen' : d.kind === 'fijo' ? 'Fijo' : d.planKind === 'minimo' ? 'Mínimo' : d.planKind === 'otro' ? 'Parcial' : 'Total'}</span>{' '}
+                      <span className="muted" style={{ fontSize: '.78rem' }}>{d.inDays < 0 ? `vencido hace ${-d.inDays} días` : d.inDays === 0 ? 'vence hoy' : d.inDays === 1 ? 'vence mañana' : `en ${d.inDays} días`}</span>
+                    </div>
+                    {d.amount !== null ? <span className="num">{ars(d.amount)}</span> : <button className="btn sm" onClick={() => go('cierre')}>Cargar</button>}
                   </div>
                 );
               })}

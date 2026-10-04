@@ -5,7 +5,7 @@ Son tres pasos: preparar Supabase, publicar la app y entrar desde el celular y l
 ## 1. Supabase
 
 1. Entrá a [supabase.com](https://supabase.com) y creá un proyecto nuevo (por ejemplo `finanzas`). La región más cercana es **South America (São Paulo)**.
-2. En el proyecto, abrí **SQL Editor → New query**, pegá todo el contenido de [`supabase/migrations/0001_inicial.sql`](../supabase/migrations/0001_inicial.sql) y tocá **Run**. Crea las tablas y deja cada fila visible solo para su dueño. Repetí lo mismo con [`0002_duplicados.sql`](../supabase/migrations/0002_duplicados.sql), que evita que los tópicos iniciales se carguen dos veces.
+2. En el proyecto, abrí **SQL Editor → New query**, pegá todo el contenido de [`supabase/migrations/0001_inicial.sql`](../supabase/migrations/0001_inicial.sql) y tocá **Run**. Crea las tablas y deja cada fila visible solo para su dueño. Repetí lo mismo, en orden, con cada script de la carpeta [`supabase/migrations`](../supabase/migrations): `0002_duplicados.sql` (evita que los tópicos iniciales se carguen dos veces) y `0003_resumenes_y_fijos.sql` (resúmenes de tarjeta y gastos fijos). Todos se pueden correr más de una vez sin problema.
 3. Copiá los dos datos de conexión. El botón verde **Connect** de arriba los muestra juntos, o buscalos así:
    - **URL del proyecto** → `VITE_SUPABASE_URL`. Es `https://<Project ID>.supabase.co`. El Project ID está en **Project Settings → General**.
    - **Clave pública** → `VITE_SUPABASE_ANON_KEY`. Está en **Project Settings → API Keys**: usá la **Publishable key** (`sb_publishable_...`) o, en la pestaña **Legacy API Keys**, la clave **anon public** (`eyJ...`). Cualquiera de las dos sirve.

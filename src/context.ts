@@ -1,6 +1,6 @@
 import { createContext, useContext } from 'react';
 import type { FxQuote } from './lib/fx';
-import type { Category, PaymentMethod, Settings, Transaction } from './lib/types';
+import type { CardStatement, Category, PaymentMethod, Recurring, RecurringInstance, Settings, Transaction } from './lib/types';
 import type { Store } from './data/store';
 
 export type View = 'inicio' | 'movimientos' | 'tarjetas' | 'cierre' | 'escanear' | 'ajustes';
@@ -10,8 +10,13 @@ export interface AppCtx {
   store: Store;
   cats: Category[];
   pms: PaymentMethod[];
-  /** Movimientos del mes elegido y de los 6 meses siguientes (para proyectar cuotas) */
+  /** Movimientos desde el mes anterior al elegido hasta 6 meses después (cuotas y resúmenes) */
   txs: Transaction[];
+  /** Resúmenes de tarjeta alrededor del mes elegido y del actual */
+  statements: CardStatement[];
+  recurring: Recurring[];
+  /** Gastos fijos de cada mes, alrededor del mes elegido y del actual */
+  instances: RecurringInstance[];
   settings: Settings;
   quote: FxQuote | null;
   /** Pesos por dólar que se usan para convertir */
