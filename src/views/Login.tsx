@@ -15,7 +15,7 @@ export function Login() {
     setError(null); setInfo(null); setBusy(true);
     const { data, error } = mode === 'entrar'
       ? await supabase.auth.signInWithPassword({ email, password })
-      : await supabase.auth.signUp({ email, password, options: { emailRedirectTo: location.origin } });
+      : await supabase.auth.signUp({ email, password, options: { emailRedirectTo: location.origin + import.meta.env.BASE_URL } });
     setBusy(false);
     if (error) {
       setError(error.message === 'Invalid login credentials' ? 'El email o la contraseña no coinciden.' : error.message);

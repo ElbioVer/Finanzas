@@ -2,7 +2,11 @@ import { defineConfig } from 'vitest/config';
 import react from '@vitejs/plugin-react';
 import { VitePWA } from 'vite-plugin-pwa';
 
+// En GitHub Pages la app vive en /finanzas/; en local y en Vercel, en la raíz.
+const base = process.env.BASE_PATH ?? '/';
+
 export default defineConfig({
+  base,
   plugins: [
     react(),
     VitePWA({
@@ -13,7 +17,8 @@ export default defineConfig({
         short_name: 'Finanzas',
         description: 'Control de sueldo, gastos, tarjetas y cuotas',
         lang: 'es-AR',
-        start_url: '/',
+        start_url: base,
+        scope: base,
         display: 'standalone',
         background_color: '#0B1220',
         theme_color: '#0B1220',
@@ -24,7 +29,7 @@ export default defineConfig({
         ],
       },
       workbox: {
-        navigateFallback: '/index.html',
+        navigateFallback: `${base}index.html`,
         runtimeCaching: [
           {
             urlPattern: ({ url }) => url.origin === 'https://fonts.googleapis.com' || url.origin === 'https://fonts.gstatic.com',
