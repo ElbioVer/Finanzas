@@ -11,13 +11,13 @@ Son tres pasos: preparar Supabase, publicar la app y entrar desde el celular y l
    - **Clave pública** → `VITE_SUPABASE_ANON_KEY`. Está en **Project Settings → API Keys**: usá la **Publishable key** (`sb_publishable_...`) o, en la pestaña **Legacy API Keys**, la clave **anon public** (`eyJ...`). Cualquiera de las dos sirve.
 
    La clave pública se puede ver sin riesgo: la seguridad la dan las reglas del paso 2. Nunca uses la clave **secret** (`sb_secret_...`) ni la **service_role** en la app.
-4. En **Authentication → URL Configuration** poné en **Site URL** la dirección donde está publicada la app (`https://elbiover.github.io/finanzas/`). Si querés probar en tu PC, agregá también `http://localhost:5173` en **Redirect URLs**.
+4. En **Authentication → URL Configuration** poné en **Site URL** la dirección donde está publicada la app (`https://elbiover.github.io/Finanzas/`). Si querés probar en tu PC, agregá también `http://localhost:5173` en **Redirect URLs**.
 
 ## 2. Publicar la app
 
 ### GitHub Pages (configurado)
 
-La app se publica sola en **https://elbiover.github.io/finanzas/** cada vez que cambia la rama `main`, con el workflow [`.github/workflows/pages.yml`](../.github/workflows/pages.yml). Requiere el repositorio público y **Settings → Pages → Source: GitHub Actions**. El avance de cada publicación se ve en la pestaña **Actions** de GitHub.
+La app se publica sola en **https://elbiover.github.io/Finanzas/** cada vez que cambia la rama `main`, con el workflow [`.github/workflows/pages.yml`](../.github/workflows/pages.yml). Requiere el repositorio público y **Settings → Pages → Source: GitHub Actions**. El avance de cada publicación se ve en la pestaña **Actions** de GitHub.
 
 ### Alternativa: Vercel (sirve con repositorio privado)
 
