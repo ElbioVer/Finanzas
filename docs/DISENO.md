@@ -119,7 +119,7 @@ Google Calendar: al guardar el cierre de mes se crea (o actualiza) un evento por
 ## Plan por etapas
 
 1. **Base (hecha):** proyecto, login, tópicos, medios de pago, movimientos con cuotas, pantalla de Inicio. Instalable en el celular.
-2. **Tarjetas:** resúmenes, cierre de mes, cuotas y proyección, gastos fijos.
+2. **Tarjetas (hecha):** resúmenes, cierre de mes, cuotas y proyección, gastos fijos.
 3. **Alertas:** avisos en la app, push y Google Calendar.
 4. **Tickets:** OCR con Tesseract y lectura con IA.
 5. **Extras:** dólar automático, gráficos históricos, exportar a Excel, presupuesto anual con aguinaldo.

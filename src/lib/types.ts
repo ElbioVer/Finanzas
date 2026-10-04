@@ -51,3 +51,47 @@ export const PM_KIND_LABEL: Record<PMKind, string> = {
   credito: 'Tarjeta de crédito',
   banco: 'Cuenta / transferencia',
 };
+
+export type PlanKind = 'total' | 'minimo' | 'otro';
+
+/** Resumen mensual de una tarjeta. period = mes del vencimiento (YYYY-MM). */
+export interface CardStatement {
+  id: string;
+  payment_method_id: string;
+  period: string;
+  closing_date: string | null;
+  due_date: string;
+  total_ars: number;
+  total_usd: number;
+  minimum_payment: number;
+  planned_kind: PlanKind;
+  /** Solo cuando planned_kind = 'otro' */
+  planned_amount: number | null;
+  paid_amount: number | null;
+  paid_at: string | null;
+}
+
+/** Gasto fijo que se repite todos los meses */
+export interface Recurring {
+  id: string;
+  name: string;
+  category_id: string | null;
+  payment_method_id: string | null;
+  default_amount: number | null;
+  currency: Currency;
+  due_day: number;
+  active: boolean;
+  sort: number;
+}
+
+/** El gasto fijo de un mes en particular */
+export interface RecurringInstance {
+  id: string;
+  recurring_id: string;
+  period: string;
+  due_date: string;
+  amount: number;
+  currency: Currency;
+  paid_at: string | null;
+  transaction_id: string | null;
+}

@@ -7,7 +7,10 @@ import { createDemoStore } from './data/demoStore';
 import { createSupabaseStore, supabase } from './data/supabaseStore';
 import { addMonthsYm, monthEnd, monthStart, today, ymOf } from './lib/dates';
 import { fetchOficial, type FxQuote } from './lib/fx';
-import type { Category, PaymentMethod, Settings, Transaction } from './lib/types';
+import type { CardStatement, Category, PaymentMethod, Recurring, RecurringInstance, Settings, Transaction } from './lib/types';
+import { missingInstances } from './lib/calc';
+import { newId } from './data/store';
+import { Cierre } from './views/Cierre';
 import { Ajustes } from './views/Ajustes';
 import { Inicio } from './views/Inicio';
 import { Login } from './views/Login';
@@ -53,6 +56,9 @@ function Shell({ email }: { email: string | null }) {
   const [cats, setCats] = useState<Category[]>([]);
   const [pms, setPms] = useState<PaymentMethod[]>([]);
   const [txs, setTxs] = useState<Transaction[]>([]);
+  const [statements, setStatements] = useState<CardStatement[]>([]);
+  const [recurring, setRecurring] = useState<Recurring[]>([]);
+  const [instances, setInstances] = useState<RecurringInstance[]>([]);
   const [settings, setSettings] = useState<Settings>({ fx_source: 'oficial', fx_manual: null });
   const [quote, setQuote] = useState<FxQuote | null>(null);
   const [loaded, setLoaded] = useState(false);
@@ -69,20 +75,32 @@ function Shell({ email }: { email: string | null }) {
 
   const reload = useCallback(async () => {
     try {
-      const [c, p, t, s] = await Promise.all([
+      const cur = ymOf(todayIso);
+      // Rango que cubre el mes elegido y el actual (las alertas y vencimientos miran el mes actual)
+      const from = [addMonthsYm(ym, -1), addMonthsYm(cur, -1)].sort()[0];
+      const to = [addMonthsYm(ym, 2), addMonthsYm(cur, 2)].sort()[1];
+      const [c, p, t, s, st, rec, inst] = await Promise.all([
         store.listCategories(),
         store.listPaymentMethods(),
-        store.listTransactions(monthStart(ym), monthEnd(addMonthsYm(ym, 6))),
+        store.listTransactions(monthStart(addMonthsYm(ym, -1)), monthEnd(addMonthsYm(ym, 6))),
         store.getSettings(),
+        store.listStatements(from, to),
+        store.listRecurring(),
+        store.listInstances(from, to),
       ]);
+      // Los gastos fijos del mes actual, el siguiente y el elegido (si es futuro) se crean solos
+      const periods = [...new Set([cur, addMonthsYm(cur, 1), ym])].filter(x => x >= cur);
+      const missing = missingInstances(rec, inst, periods, newId);
+      const finalInst = missing.length ? (await store.ensureInstances(missing), await store.listInstances(from, to)) : inst;
       setCats(c); setPms(p); setTxs(t); setSettings(s);
+      setStatements(st); setRecurring(rec); setInstances(finalInst);
       setLoadError(null);
     } catch (e) {
       setLoadError(e instanceof Error ? e.message : String(e));
     } finally {
       setLoaded(true);
     }
-  }, [store, ym]);
+  }, [store, ym, todayIso]);
 
   useEffect(() => { reload(); }, [reload]);
   useEffect(() => { fetchOficial().then(setQuote); }, []);
@@ -114,7 +132,7 @@ function Shell({ email }: { email: string | null }) {
   const rate = settings.fx_source === 'oficial' ? quote?.venta ?? settings.fx_manual ?? 0 : settings.fx_manual ?? 0;
 
   const ctx: AppCtx = {
-    store, cats, pms, txs, settings, quote, rate, ym, setYm, todayIso, reload, run, go, toast, email,
+    store, cats, pms, txs, statements, recurring, instances, settings, quote, rate, ym, setYm, todayIso, reload, run, go, toast, email,
     openTx: tx => setEditing(tx ?? 'new'),
     signOut: () => { supabase?.auth.signOut(); },
   };
@@ -125,7 +143,7 @@ function Shell({ email }: { email: string | null }) {
     <div className="panel soon-box">
       <h2>No pudimos leer tus datos</h2>
       <p className="muted" style={{ margin: 0 }}>{loadError}</p>
-      <p className="note" style={{ margin: 0 }}>Si es la primera vez, revisá que hayas corrido el script de la base de datos en Supabase (ver docs/SETUP.md).</p>
+      <p className="note" style={{ margin: 0 }}>Revisá que hayas corrido en Supabase todos los scripts de la carpeta supabase/migrations, en orden (ver docs/SETUP.md).</p>
       <button className="btn" style={{ alignSelf: 'flex-start' }} onClick={reload}>Reintentar</button>
     </div>
   );
@@ -133,11 +151,7 @@ function Shell({ email }: { email: string | null }) {
     inicio: <Inicio />,
     movimientos: <Movimientos />,
     tarjetas: <Tarjetas />,
-    cierre: <Proximamente title="Cierre de mes" etapa={2} items={[
-      'Por cada tarjeta: fecha de cierre, vencimiento, total en pesos y dólares y pago mínimo.',
-      'Elegís si pagás el total, el mínimo u otro monto, y te avisa cuánto queda financiado.',
-      'Confirmás el monto del alquiler, la cuota del auto y los demás gastos fijos.',
-    ]} />,
+    cierre: <Cierre />,
     escanear: <Proximamente title="Escanear ticket" etapa={4} items={[
       'Sacás una foto del ticket y se leen comercio, fecha, total e ítems.',
       'OCR gratis en el celular, o lectura con IA cuando el ticket está gastado.',
