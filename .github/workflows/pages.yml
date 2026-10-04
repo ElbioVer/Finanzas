@@ -23,15 +23,17 @@ jobs:
         with:
           node-version: 22
           cache: npm
+      - id: pages
+        uses: actions/configure-pages@v5
       - run: npm ci
       - run: npm test
       - run: npm run build
         env:
-          BASE_PATH: /finanzas/
+          # Ruta exacta que asigna GitHub (respeta mayúsculas: /Finanzas)
+          BASE_PATH: ${{ steps.pages.outputs.base_path }}/
           # Datos públicos por diseño: la seguridad la dan las reglas RLS de la base.
           VITE_SUPABASE_URL: https://jzcgdafechmwgjikvnnv.supabase.co
           VITE_SUPABASE_ANON_KEY: sb_publishable_VaasNDoO_ygEG56QZE0Y3Q_rt3kQkJ_
-      - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v3
         with:
           path: dist
