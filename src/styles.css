@@ -243,3 +243,24 @@ main { min-width: 0; padding-block: 26px 120px; padding-inline: 32px; max-width:
 .soon-box { max-width: 560px; display: flex; flex-direction: column; gap: 10px; }
 .month button:disabled { opacity: .4; }
 .cat-row > span:first-child { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+/* ---- montos con decimales: que nunca se pisen ---- */
+.amt, .cat-row .num, .due .num, .kv dd, .cuotas .num { white-space: nowrap; }
+.cat-row { grid-template-columns: 110px 1fr auto; }
+.inline-cap { width: 130px; }
+@media (max-width: 760px) {
+  .cat-row { grid-template-columns: 84px 1fr auto; }
+  /* Ingresos y egresos uno debajo del otro: los montos largos no entran en dos columnas */
+  .balance { grid-template-columns: 1fr; }
+  .balance > div:nth-child(3) { border-left: 0; }
+  .balance > div { padding: 14px 18px; }
+  .balance .big { font-size: 1.3rem; white-space: normal; overflow-wrap: anywhere; }
+  .balance .hero .big { font-size: 1.6rem; }
+}
+.topic > div:first-child, .set-row > p { min-width: 0; }
+.set-row { flex-wrap: wrap; }
+@media (max-width: 420px) {
+  .topic { gap: 8px; }
+  .inline-cap { width: 104px; }
+}
+.btn { white-space: nowrap; }

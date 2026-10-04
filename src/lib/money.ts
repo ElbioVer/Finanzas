@@ -1,6 +1,7 @@
 import type { Currency } from './types';
 
-export const ars = (n: number) => '$ ' + Math.round(n).toLocaleString('es-AR');
+export const ars = (n: number) =>
+  '$ ' + n.toLocaleString('es-AR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 export const usd = (n: number) =>
   'US$ ' + n.toLocaleString('es-AR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 export const money = (n: number, c: Currency) => (c === 'USD' ? usd(n) : ars(n));

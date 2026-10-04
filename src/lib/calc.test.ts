@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { buildAlerts, buildInstallments, installmentProjection, monthSummary, spendingByCategory, upcomingDues } from './calc';
 import { addMonthsIso, nextOccurrence } from './dates';
-import { parseAmount, splitInstallments } from './money';
+import { ars, parseAmount, splitInstallments, usd } from './money';
 import type { Category, PaymentMethod, Transaction } from './types';
 
 let seq = 0;
@@ -17,6 +17,15 @@ describe('parseAmount', () => {
     ['1234.56', 1234.56], ['$ 3.000', 3000], ['1.234.567', 1234567], ['', NaN], ['abc', NaN], ['-5', NaN],
   ])('%s → %s', (raw, expected) => {
     expect(parseAmount(raw)).toBe(expected);
+  });
+});
+
+describe('formato de montos', () => {
+  it('muestra siempre 2 decimales', () => {
+    expect(ars(1910000)).toBe('$ 1.910.000,00');
+    expect(ars(1234.5)).toBe('$ 1.234,50');
+    expect(ars(-254658.456)).toBe('$ -254.658,46');
+    expect(usd(9.99)).toBe('US$ 9,99');
   });
 });
 
