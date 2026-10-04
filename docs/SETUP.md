@@ -6,11 +6,11 @@ Son tres pasos: preparar Supabase, publicar la app y entrar desde el celular y l
 
 1. Entrá a [supabase.com](https://supabase.com) y creá un proyecto nuevo (por ejemplo `finanzas`). La región más cercana es **South America (São Paulo)**.
 2. En el proyecto, abrí **SQL Editor → New query**, pegá todo el contenido de [`supabase/migrations/0001_inicial.sql`](../supabase/migrations/0001_inicial.sql) y tocá **Run**. Crea las tablas y deja cada fila visible solo para su dueño.
-3. En **Project Settings → API** copiá:
-   - **Project URL** → `VITE_SUPABASE_URL`
-   - **anon public** key → `VITE_SUPABASE_ANON_KEY`
+3. Copiá los dos datos de conexión. El botón verde **Connect** de arriba los muestra juntos, o buscalos así:
+   - **URL del proyecto** → `VITE_SUPABASE_URL`. Es `https://<Project ID>.supabase.co`. El Project ID está en **Project Settings → General**.
+   - **Clave pública** → `VITE_SUPABASE_ANON_KEY`. Está en **Project Settings → API Keys**: usá la **Publishable key** (`sb_publishable_...`) o, en la pestaña **Legacy API Keys**, la clave **anon public** (`eyJ...`). Cualquiera de las dos sirve.
 
-   La clave `anon` es pública por diseño: la seguridad la dan las reglas del paso 2. Nunca uses la clave `service_role` en la app.
+   La clave pública se puede ver sin riesgo: la seguridad la dan las reglas del paso 2. Nunca uses la clave **secret** (`sb_secret_...`) ni la **service_role** en la app.
 4. En **Authentication → URL Configuration** poné en **Site URL** la dirección donde vas a publicar la app (paso 2). Si querés probar en tu PC, agregá también `http://localhost:5173` en **Redirect URLs**.
 
 ## 2. Publicar la app (Vercel, gratis)
