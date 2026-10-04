@@ -59,7 +59,7 @@ export function Ajustes() {
                 <span className="muted" style={{ fontSize: '.8rem' }}>{c.kind === 'ingreso' ? 'Ingreso' : c.is_fixed ? 'Gasto fijo mensual' : 'Gasto variable'}</span>
               </div>
               {kind === 'egreso'
-                ? <input className="input num inline-cap" aria-label={`Tope mensual de ${c.name}`} defaultValue={c.monthly_cap ? Math.round(c.monthly_cap).toLocaleString('es-AR') : ''} placeholder="Sin tope" onBlur={e => saveCap(c, e.target.value)} onKeyDown={e => { if (e.key === 'Enter') e.currentTarget.blur(); }} />
+                ? <input className="input num inline-cap" aria-label={`Tope mensual de ${c.name}`} defaultValue={c.monthly_cap ? c.monthly_cap.toLocaleString('es-AR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : ''} placeholder="Sin tope" onBlur={e => saveCap(c, e.target.value)} onKeyDown={e => { if (e.key === 'Enter') e.currentTarget.blur(); }} />
                 : <span />}
               <button className="btn sm" onClick={() => run(() => store.saveCategory({ ...c, archived: true }), `Quitaste ${c.name}`)}>Quitar</button>
             </div>
