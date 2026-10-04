@@ -12,7 +12,9 @@ Prototipo navegable: [`prototipo/index.html`](../prototipo/index.html) (abrilo e
 | Usuarios | Uno solo |
 | Monedas | Pesos y dólares |
 | Cuotas | Sí, con proyección de meses futuros |
-| Sueldo | Mensual (más aguinaldo en junio y diciembre) |
+| Sueldo | Mensual (más aguinaldo en junio y diciembre), cobrado en Banco Galicia |
+| Débito | Banco Galicia |
+| Dólar | Oficial (venta), con valor manual de respaldo |
 | Escaneo de tickets | OCR gratis en el dispositivo + IA (Claude) opcional |
 | Alertas | Dentro de la app, notificaciones push y Google Calendar |
 | Estilo | Oscuro y moderno |
@@ -32,7 +34,7 @@ Una sola aplicación web instalable (**PWA**). En el celular se instala desde Ch
   - `pg_cron` para tareas diarias (revisar vencimientos, aviso de cierre de mes, actualizar el dólar).
 - **OCR gratis:** Tesseract.js, corre en el propio dispositivo.
 - **OCR con IA:** API de Claude con visión, a través de una Edge Function. Devuelve comercio, fecha, total, ítems y CUIT en JSON.
-- **Cotización del dólar:** API pública (por ejemplo dolarapi.com) leída una vez por día. Se puede elegir tarjeta, MEP, oficial o manual.
+- **Cotización del dólar:** oficial (venta) desde dolarapi.com, guardada 6 horas en el dispositivo. Si no hay conexión se usa un valor manual.
 - **Hosting:** Vercel o Netlify (gratis), con dominio propio opcional.
 
 ## Pantallas
@@ -116,7 +118,7 @@ Google Calendar: al guardar el cierre de mes se crea (o actualiza) un evento por
 
 ## Plan por etapas
 
-1. **Base:** proyecto, login, tópicos, medios de pago, movimientos, pantalla de Inicio. Instalable en el celular.
+1. **Base (hecha):** proyecto, login, tópicos, medios de pago, movimientos con cuotas, pantalla de Inicio. Instalable en el celular.
 2. **Tarjetas:** resúmenes, cierre de mes, cuotas y proyección, gastos fijos.
 3. **Alertas:** avisos en la app, push y Google Calendar.
 4. **Tickets:** OCR con Tesseract y lectura con IA.
@@ -124,7 +126,5 @@ Google Calendar: al guardar el cierre de mes se crea (o actualiza) un evento por
 
 ## Pendiente de definir
 
-- Días de cierre y vencimiento reales de cada tarjeta (el prototipo usa valores inventados).
-- Banco donde cobrás el sueldo y con el que pagás con débito.
-- Tipo de dólar para convertir los consumos en USD.
-- Si ya tenés cuenta en Supabase y una API key de Anthropic, o las creamos juntos.
+- Días de cierre y vencimiento reales de cada tarjeta (se cargan desde la app, en Tarjetas y deudas).
+- API key de Anthropic para la lectura de tickets con IA (etapa 4).
